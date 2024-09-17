@@ -1,0 +1,167 @@
+clear all
+close all
+
+nlim = 4 ; % Maximum Fourier coefficient.
+% filename = 'polygon.dat' ;
+% nlim = 75 ; % Maximum Fourier coefficient.
+
+% Set up (x,y) data defining a closed curve.
+% It will be assumed that the first and last points are the same.
+t = 0 : pi/32 : 2*pi ;
+x = 16 .* sin(t).^3 ;
+y = 13.*cos(t) - 5.*cos(2.*t) -2.*cos(3.*t) - cos(4.*t) ;
+
+% Centre and normalise the curve.
+x = x - mean(x) ;
+y = y - mean(y) ;
+r = mean( sqrt( x.^2 + y.^2 ) ) ;
+x = x ./ r ;
+y = y ./ r ;
+
+% % Add intermediate points to make spacings between the points more equal.
+% % Expanded data will be in arrays xi and yi
+% s = sqrt( ( x(1:end-1) - x(2:end) ).^2 + ( y(1:end-1) - y(2:end) ).^2 ) ;
+% smin = min(s) ;
+% xi = x(1) ;
+% yi = y(1) ;
+% for n = 2 : numel(x)
+%     ns = ceil( s(n-1) / smin ) ;
+%     xi = [ xi , interp1( [0,1] , [x(n-1),x(n)] , (1:ns)./ns ) ] ;
+%     yi = [ yi , interp1( [0,1] , [y(n-1),y(n)] , (1:ns)./ns ) ] ;
+% end
+
+xi = x ; yi = y ;
+
+% Evaluate Fourier coefficients.
+z = xi + 1i.*yi ; % The curve in the complex plane.
+t = 2.*pi.*(0:numel(z)-1)./(numel(z)-1) ; % t values 0 to 2*pi
+coeff = zeros(1,2*nlim+1) ;
+for n = -nlim : nlim
+    c = exp( -1i .* n .* t(1:end-1) ) ;
+    coeff(n+nlim+1) = mean( c .* z(1:end-1) ) ; % Coefficient n.
+end
+coeff
+
+% The curve represented as Fourier series.
+zf = zeros(size(z)) ;
+for n = -nlim : nlim
+    c = exp( 1i .* n .* t ) ;
+    zf = zf + coeff(n+nlim+1) .* c ;
+end
+
+% Plot the original data and the resultant Fourier series as a check.
+figure
+hold on
+plot(xi,yi) % Original data expanded with interpolated points.
+plot(x,y,'ob') % Original points
+plot(real(zf),imag(zf),'r') % Fourier transform result
+axis equal
+
+% Save resulting axis limits for use on each frame of the animation.
+xlim1 = xlim ;
+ylim1 = ylim ;
+
+% Extend axes.
+d = ( ylim1(2) - ylim1(1) ) / 20 ;
+xlim1 = xlim1 + [ -d , d ] ;
+ylim1 = ylim1 + [ -d , d ] ;
+
+% Animation
+% =========
+
+% Create video object.
+writerObj = VideoWriter( 'cycles.avi' , 'Uncompressed AVI' );
+open(writerObj);
+
+% Coordinate t step for one frame.
+tstep = 0.002 * 2 * pi ;
+
+% Set up the figure window for animation.
+fignum = figure ;
+hold on
+set( gcf , 'Position' , [ 50 50 1024 768 ] )
+%set( gcf , 'Position' , [ 50 50 512 384 ] )
+
+% Time between animation frames.
+timestep = 1/30 ;
+
+% The range of t values for animation. 0 to 2*pi but with some extra zeros
+% at the start and 2*pi's at the end.
+tstart = 0 ;
+trange = [ zeros(1,100) , 0 : tstep : 2*pi , 2.*pi.*ones(1,100) ] + tstart ;
+
+% Loop for animation frames.
+phase = 1 ;
+for t = trange
+    % Clear for new frame.
+    clf
+    axis equal
+    axis off
+    
+    % Draw the curve up to t.
+    tdraw = tstart : tstep : t ;
+    zf = zeros(size(tdraw)) ;
+    for n = -nlim : nlim
+        c = exp( 1i .* n .* tdraw ) ;
+        zf = zf + coeff(n+nlim+1) .* c ;
+    end
+    plot( real(zf) , imag(zf) , 'Color' , 'r' , 'LineWidth' , 5 )
+    xlim( xlim1 )
+    ylim( ylim1 )
+    set(gca,'XTick',[])
+    set(gca,'YTick',[])
+
+    
+    % Add the circle chain for t.
+    xc = real(coeff(0+nlim+1)) ;
+    yc = imag(coeff(0+nlim+1)) ;
+    linewidths = ones(1,nlim) ; linewidths(1:8) = [ 4,4,3,3,2,2,2,2 ] ;
+    colours = colormap(lines(6)) ;
+    ncol = 0 ;
+	
+    for k = 1 : nlim
+        for m = [ 1 , -1 ]
+            mk = m * k ;
+            r = abs(coeff(mk+nlim+1)) ;
+            c = exp( 1i .* mk .* t ) ;
+            xc1 = xc + real(coeff(mk+nlim+1)*c) ;
+            yc1 = yc + imag(coeff(mk+nlim+1)*c) ;
+            xc = xc1 ;
+            yc = yc1 ;
+        end
+    end
+
+    for k = nlim : -1 : 1
+        linewidth = linewidths(k) ;
+        for m = [ -1 , 1 ]
+            ncol = ncol+1 ;
+            if ncol > size(colours,1)
+                ncol = 1 ;
+            end
+            mk = m * k ;
+            r = abs(coeff(mk+nlim+1)) ;
+            %rectangle('Position',[xc-r,yc-r,2*r,2*r],'Curvature',[1,1],'EdgeColor',[0.5,0.5,0.5],'LineWidth',linewidth)
+            r = 0.01 * linewidth ;
+            c = exp( 1i .* mk .* t ) ;
+            xc1 = xc - real(coeff(mk+nlim+1)*c) ;
+            yc1 = yc - imag(coeff(mk+nlim+1)*c) ;
+            line( [xc,xc1] , [yc,yc1] , 'Color' , colours(ncol,:),'LineWidth',linewidth )
+            xc = xc1 ;
+            yc = yc1 ;
+            rectangle('Position',[xc-r,yc-r,2*r,2*r],'Curvature',[1,1],'EdgeColor',colours(ncol,:),'LineWidth',linewidth)
+        end
+    end
+    
+%     % Credits
+%     if nstage == maxstage
+%         text( 0 , view_distance_smoothed * 0.84 , 0 , '(C) 2016 R.W.Wills' , 'Color' , 'w' , 'HorizontalAlignment' , 'center' , 'VerticalAlignment' , 'Bottom' , 'FontSize' , 20 )
+%         text( 0 , -view_distance_smoothed * 0.8 , 0 , 'Stellation of the Icosahedron' , 'Color' , 'w' , 'HorizontalAlignment' , 'center' , 'VerticalAlignment' , 'Top' , 'FontSize' , 30 )
+%     end
+    
+    drawnow
+    
+    % Save frame to avi file.
+    frame = getframe(fignum);
+    writeVideo(writerObj,frame);
+    
+end
