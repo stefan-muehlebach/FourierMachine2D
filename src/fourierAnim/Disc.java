@@ -9,6 +9,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.geometry.Point2D;
+import javafx.scene.DepthTest;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -20,8 +21,11 @@ public class Disc
         extends Group {
 
     private final static double F = 200.0;
-    private final static Color CIRCLE_COLOR = (Color.SADDLEBROWN).darker();
-    private final static Color LINE_COLOR = (Color.DARKTURQUOISE).darker();
+    private final static Color BORDER_COLOR = Color.rgb(255, 255, 255, 0.5);
+    private final static Color LINE_COLOR = Color.rgb(161, 121, 203, 0.5);
+    private final static Color DISC_COLOR = Color.rgb(255, 255, 255, 0.1);
+    private static final double BORDER_WIDTH = 2.0;
+    private static final double LINE_WIDTH = 4.0;
     private static final Duration REVOLUTION_TIME = Duration.seconds(20.0);
 
     private double displ;
@@ -43,6 +47,7 @@ public class Disc
             parent.getChildren().add(this);
             displ = parent.displ;
         }
+        this.setDepthTest(DepthTest.ENABLE);
         rotComp = new Rotate(0.0, displ, 0.0);
         if (parent != null) {
             rotComp.angleProperty().bind(parent.rotation.angleProperty().multiply(-1.0));
@@ -51,14 +56,14 @@ public class Disc
         getTransforms().addAll(rotation, rotComp);
 
         circle = new Circle(displ, 0.0, radius);
-        circle.setFill(null);
-        circle.setStroke(CIRCLE_COLOR);
-        circle.setStrokeWidth(3.0);
+        circle.setFill(DISC_COLOR);
+        circle.setStroke(BORDER_COLOR);
+        circle.setStrokeWidth(BORDER_WIDTH);
         getChildren().add(circle);
 
         line = new Line(displ, 0.0, displ + radius, 0.0);
         line.setStroke(LINE_COLOR);
-        line.setStrokeWidth(3.0);
+        line.setStrokeWidth(LINE_WIDTH);
         getChildren().add(line);
 
         System.out.printf("duration: %f\n", duration.toSeconds());
