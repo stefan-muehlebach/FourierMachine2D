@@ -34,6 +34,7 @@ import javafx.event.EventHandler;
 import java.util.ArrayList;
 import java.util.Iterator;
 import javafx.fxml.FXMLLoader;
+import static javafx.scene.input.KeyCode.C;
 import javafx.scene.layout.VBox;
 
 public class Main
@@ -42,10 +43,18 @@ public class Main
     /*
      * Konstanten
      */
-    static final int FRAME_WIDTH  = 1024;
-    static final int FRAME_HEIGHT = 1024;
+    static final int FRAME_WIDTH  = 2000;
+    static final int FRAME_HEIGHT = 1200;
     static final long DRAW_TASK_PERIOD = 100_000_000;
+    
+    static final double AXIS_LENGTH = 1000.0;
+    static final double AXIS_WIDTH = 2.0;
+    static final Color X_AXIS_COLOR = Color.rgb(255, 0, 0, 0.5);
+    static final Color Y_AXIS_COLOR = Color.rgb(0, 255, 0, 0.5);
 
+    static final Color CURVE_COLOR = Color.rgb(255, 255, 255, 0.5);
+    static final double CURVE_WIDTH = 4.0;
+    
     /* -----------------------------------------------------------------------
     *
     * Ab hier geht es ums Eingemachte.
@@ -141,44 +150,42 @@ public class Main
         world.getChildren().add(discGroup);
         drawGroup = new Group();
         world.getChildren().add(drawGroup);
-//        curve = new Polyline();
-        curve.setStroke(Color.WHITE);
-        curve.setStrokeWidth(2.0);
+        curve.setStroke(CURVE_COLOR);
+        curve.setStrokeWidth(CURVE_WIDTH);
         drawGroup.getChildren().add(curve);
     }
 
     private void buildCamera(Group root) {
-        world.setTranslateX(FRAME_WIDTH / 2.0);
-        world.setTranslateY(FRAME_HEIGHT / 2.0);
-        camZoom = new Scale(1.0, -1.0, 0.0, 0.0);
-        world.getTransforms().add(camZoom);
+        root.setTranslateX(FRAME_WIDTH / 2.0);
+        root.setTranslateY(FRAME_HEIGHT / 2.0);
+        camZoom = new Scale(0.75, -0.75, 0.0, 0.0);
+        root.getTransforms().add(camZoom);
     }
 
-    private void buildAxes(Group world) {
-        final double axisLength = 500.0;
-        final Color xAxisColor = Color.LIGHTCORAL;
-        final Color yAxisColor = Color.LIGHTSKYBLUE;
+    private void buildAxes(Group root) {
         axisGroup = new Group();
 
-        Line xAxis = new Line(-axisLength, 0.0, axisLength, 0.0);
-        xAxis.setStroke(xAxisColor);
-        xAxis.setStrokeWidth(1.0);
-        Path xArrow = new Path(new MoveTo(axisLength - 10.0, 5.0), new LineTo(axisLength, 0.0), new LineTo(axisLength - 10.0, -5.0));
-        xArrow.setStroke(xAxisColor);
-        xArrow.setStrokeWidth(1.0);
+        Line xAxis = new Line(-AXIS_LENGTH, 0.0, AXIS_LENGTH, 0.0);
+        xAxis.setStroke(X_AXIS_COLOR);
+        xAxis.setStrokeWidth(AXIS_WIDTH);
+        Path xArrow = new Path(new MoveTo(AXIS_LENGTH - 15.0, 5.0), new LineTo(AXIS_LENGTH, 0.0), new LineTo(AXIS_LENGTH - 15.0, -5.0));
+        xArrow.setStroke(X_AXIS_COLOR);
+        xArrow.setStrokeWidth(0.0);
+        xArrow.setFill(X_AXIS_COLOR);
 
-        Line yAxis = new Line(0.0, -axisLength, 0.0, axisLength);
-        yAxis.setStroke(yAxisColor);
-        yAxis.setStrokeWidth(1.0);
-        Path yArrow = new Path(new MoveTo(-5.0, axisLength - 10.0), new LineTo(0.0, axisLength), new LineTo(5.0, axisLength - 10.0));
-        yArrow.setStroke(yAxisColor);
-        yArrow.setStrokeWidth(1.0);
+        Line yAxis = new Line(0.0, -AXIS_LENGTH, 0.0, AXIS_LENGTH);
+        yAxis.setStroke(Y_AXIS_COLOR);
+        yAxis.setStrokeWidth(AXIS_WIDTH);
+        Path yArrow = new Path(new MoveTo(-5.0, AXIS_LENGTH - 15.0), new LineTo(0.0, AXIS_LENGTH), new LineTo(5.0, AXIS_LENGTH - 15.0));
+        yArrow.setStroke(Y_AXIS_COLOR);
+        yArrow.setStrokeWidth(0.0);
+        yArrow.setFill(Y_AXIS_COLOR);
 
         axisGroup.getChildren().addAll(xAxis, xArrow, yAxis, yArrow);
-        world.getChildren().add(axisGroup);
+        root.getChildren().add(axisGroup);
     }
 
-    private void buildDiscsNew(Group root) {
+    private void buildDiscs(Group root) {
         Disc disc = null;
         Iterator<FourierCoeff> iter;
         iter = coeffList.freqIterator();
@@ -202,6 +209,7 @@ public class Main
     }
 
     private void handleMouse(Scene scene) {
+        
         scene.setOnMousePressed(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent ev) {
@@ -237,13 +245,18 @@ public class Main
             @Override
             public void handle(KeyEvent ev) {
                 switch (ev.getCode()) {
+                    
                     // Toggle the visibility of the axis.
-                    //
                     case A:
                         axisGroup.setVisible(!axisGroup.isVisible());
                         break;
+                       
+                    // Toggle the visibility of the discs.
+                    case C:
+                        discGroup.setVisible(!discGroup.isVisible());
+                        break;
+                        
                     // Toggle the animation
-                    //
                     case ENTER:
                         if (isRunning) {
                             stopDrawing();
@@ -256,8 +269,8 @@ public class Main
                         }
                         isRunning = !isRunning;
                         break;
+                        
                     // Toggle the drawing of the curve
-                    //
                     case SPACE:
                         if (!isRunning) {
                             break;
@@ -269,8 +282,8 @@ public class Main
                         }
                         isDrawing = !isDrawing;
                         break;
-                    // Shows more or less discs
-                    //
+                        
+                    // Shows more or less discs, i.e. frequencies
                     case UP:
                         if (visibleDiscs < discList.size()) {
                             discList.get(visibleDiscs).setVisible(true);
@@ -285,8 +298,8 @@ public class Main
                             curve.getPoints().clear();
                         }
                         break;
+                        
                     // Stops the animation and resets everything
-                    //
                     case R:
                         if (isRunning) {
                             stopDrawing();
@@ -297,8 +310,8 @@ public class Main
                         resetAnimation();
                         drawGroup.getChildren().clear();
                         break;
+                        
                     // Show the settings dialog
-                    //
                     case D:
                         if (dialogStage.isShowing()) {
                             dialogStage.hide();
@@ -306,15 +319,14 @@ public class Main
                             dialogStage.show();
                         }
                         break;
-                    case C:
-                        discGroup.setVisible(!discGroup.isVisible());
-                        break;
+
                     // Quit the application
-                    //
                     case Q:
+                    case ESCAPE:
                         stopDrawing();
                         Platform.exit();
                         break;
+                        
                     default:
                         break;
                 }
@@ -329,10 +341,9 @@ public class Main
         root = new Group();
 
         buildSceneGraph(root);
-        buildCamera(root);
+        buildCamera(world);
         buildAxes(world);
-//        buildDiscs(discGroup);
-        buildDiscsNew(discGroup);
+        buildDiscs(discGroup);
         buildDialog();
 
         Scene scene = new Scene(root, FRAME_WIDTH, FRAME_HEIGHT, true,
